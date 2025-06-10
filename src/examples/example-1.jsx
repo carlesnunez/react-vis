@@ -18,14 +18,6 @@ function CounterNodeGraph() {
             parentId: 'app',
             ownsState: 'count',
           },
-        ],
-        [
-          {
-            label: 'Counter Children',
-            parentId: 'counter',
-            dependsOnState: ['count'],
-            isPure: true,
-          },
         ]
       ]}
     />

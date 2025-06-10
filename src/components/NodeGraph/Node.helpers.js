@@ -117,13 +117,13 @@ export function useParentPath({
     }
 
     // Run after everything's already happened - increased timeout
-    const timeoutId = window.setTimeout(runEffect, 50);
+    const timeoutId = window.setTimeout(runEffect, 100);
 
     // Also run on resize
     window.addEventListener('resize', runEffect);
 
     // Retry mechanism - check again after a longer delay in case parent wasn't ready
-    const retryTimeoutId = window.setTimeout(runEffect, 200);
+    const retryTimeoutId = window.setTimeout(runEffect, 300);
 
     return () => {
       window.clearTimeout(timeoutId);

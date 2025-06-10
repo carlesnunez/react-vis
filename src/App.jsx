@@ -13,6 +13,7 @@ import {
 import { useState } from 'react';
 import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { categories, examples } from './examples';
+import Example1 from './examples/example-1.jsx';
 import Example2 from './examples/example-2.jsx';
 
 // Componente para mostrar un ejemplo específico
@@ -201,6 +202,7 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/example-2" element={<Example2 />} />
+      <Route path="/example-1" element={<Example1 />} />
       {/* <Route path="/:exampleKey" element={<ExampleRoute />} /> */}
     </Routes>
   );

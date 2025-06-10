@@ -2,9 +2,7 @@ import { styled } from '@linaria/react';
 import format from 'date-fns/format';
 import React from 'react';
 
-import { BREAKPOINTS } from '../../constants';
 
-import DefaultButton from '../DefaultButton';
 
 import Context from './Context';
 import { useParentPath } from './Node.helpers';
@@ -47,10 +45,15 @@ function Node({
 
   // HACK: This won't work if there are multiple pieces of state
   const isPathActive = isActive && !ownsState;
-console.log({parentPath})
+
   return (
     <>
-      <Wrapper id={actualId} ref={nodeRef}>
+      <Wrapper id={actualId} ref={nodeRef} hasError={false} isActive={isActive} ownsState={ownsState}>
+        <CategoryLabel>
+          {ownsState ? 'State Management' : 
+           props?.length > 0 ? 'UI Component' : 
+           'Component'}
+        </CategoryLabel>
         <Label>{label}</Label>
         {props && (
           <Props>
@@ -152,8 +155,6 @@ const BACKGROUNDS = {
 };
 
 const Wrapper = styled.div`
-  --pseudo-shadow-height: 4px;
-  --radius: 16px;
   position: relative;
   z-index: 2;
   display: flex;
@@ -161,115 +162,233 @@ const Wrapper = styled.div`
   justify-content: center;
   align-items: center;
   width: 100%;
-  min-width: 150px;
-  max-width: min(100%, 250px);
-  min-height: 7.8125rem;
-  border-radius: var(--radius);
-  padding: 16px;
-  border-bottom: var(--pseudo-shadow-height) solid hsl(220deg 10% 80%);
-  background-color: hsl(220deg 20% 92%);
-  font-family: var(--font-family-mono);
-  font-size: 1rem;
+  min-width: 180px;
+  max-width: min(100%, 220px);
+  min-height: 100px;
+  padding: 16px 20px;
+  
+  /* Dark professional styling */
+  background: #2a2d3e;
+  border: 1px solid #3a3d4e;
+  border-radius: 12px;
+  
+  /* Subtle shadow */
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+    
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.875rem;
+  
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.2),
+      0 4px 8px rgba(0, 0, 0, 0.15);
+    border-color: #4a4d5e;
+  }
+  
+  /* Status indicator dot */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: ${props => {
+      if (props.hasError) return '#ff4757';
+      if (props.isActive) return '#2ed573';
+      if (props.ownsState) return '#5352ed';
+      return '#8a8a8a';
+    }};
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+  }
 `;
 
 const Props = styled.p`
-  margin: 0;
-  color: var(--color-gray-700);
+  margin: 16px 12px 12px 12px !important;
+  color: #8a8a8a;
   font-size: 0.75rem;
+  font-weight: 400;
+  text-align: center;
+  
+  /* Subtle container styling */
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  
+  /* Slightly lighter text for contrast */
+  color: #a8a8a8;
 `;
 
 const ActiveCover = styled.div`
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--pseudo-shadow-height) * -1);
-  width: 100%;
-  height: calc(100% + var(--pseudo-shadow-height));
-  background: hsl(150deg 100% 35% / 1);
-  mix-blend-mode: hard-light;
+  inset: -1px;
+  background: transparent;
+  border: 2px solid #2ed573;
+  border-radius: 13px;
   pointer-events: none;
-  border-radius: inherit;
+  opacity: ${props => props.isActive ? 1 : 0};
+  
+  /* Gentle glow animation */
+  animation: ${props => props.isActive ? 'status-glow 0.8s ease-in-out' : 'none'};
+  
+  @keyframes status-glow {
+    0%, 100% { 
+      box-shadow: 0 0 0 rgba(46, 213, 115, 0.4);
+    }
+    50% { 
+      box-shadow: 0 0 20px rgba(46, 213, 115, 0.4);
+    }
+  }
 `;
 
 const Label = styled.p`
   display: block;
-  font-size: 1.3125rem;
-  font-weight: var(--font-weight-bold);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 4px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
+  max-width: calc(100% - 24px); /* Account for status dot */
+  text-align: center;
 `;
 
-const ChildRow = styled.div`
-  display: flex;
+const CategoryLabel = styled.p`
+  font-size: 0.7rem;
+  color: #8a8a8a;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-align: center;
 `;
 
 const StateParagraph = styled.p`
-  font-size: 1.125rem;
+  font-size: 0.875rem;
+  color: #b8b8b8;
+  margin: 8px 0 0 0;
+  font-weight: 500;
+  text-align: center;
 `;
 
 const MiniForm = styled.form`
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
   gap: 8px;
   width: 100%;
-  margin-top: auto;
+  margin-top: 8px;
+
+  label {
+    color: #b8b8b8;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
 
   input {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
+    background: #1e1e2e;
+    border: 1px solid #3a3d4e;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.875rem;
+    outline: none;
+    
+    &:focus {
+      border-color: #5352ed;
+      box-shadow: 0 0 0 2px rgba(83, 82, 237, 0.2);
+    }
+    
+    &::placeholder {
+      color: #6a6a6a;
+    }
   }
 `;
 
-const Button = styled(DefaultButton)`
-  padding: 4px 16px;
-  margin-top: 24px;
-
-  @media ${BREAKPOINTS.smAndSmaller} {
-    border: 1px solid var(--color-gray-300);
-    border-bottom-color: var(--color-gray-400);
-    background: var(--color-background);
-    border-radius: 3px;
-    color: var(--color-text);
+const Button = styled.button`
+  padding: 6px 12px;
+  margin-top: 8px;
+  background: #5352ed;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: center;
+  
+  &:hover {
+    background: #4742d4;
+    transform: translateY(-1px);
   }
-`;
-
-const Svg = styled.svg`
-  display: block;
-  z-index: 1;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-
-  path {
-    stroke: hsl(220deg 20% 70%);
-    stroke-width: 3px;
-    stroke-linecap: round;
+  
+  &:active {
+    transform: translateY(0);
   }
 `;
 
 const PureWrapper = styled.div`
   position: absolute;
-  inset: -8px;
-  bottom: -12px;
-  border: 4px solid hsl(50deg 100% 50%);
-  border-radius: calc(var(--radius) + 4px);
+  inset: -2px;
+  border: 2px solid #FF8700;
+  border-radius: 14px;
   pointer-events: none;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 1px solid #FF8700;
+    border-radius: 16px;
+    opacity: 0.3;
+    animation: pure-pulse 3s ease-in-out infinite;
+  }
+  
+  @keyframes pure-pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+  }
 `;
+
 const PureText = styled.p`
   position: absolute;
-  top: 0;
-  font-size: 0.75rem;
-  transform: translateY(-120%);
-  color: hsl(40deg 100% 30%);
+  top: -4px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  font-size: 0.6rem;
+  color: #FF8700;
   text-align: center;
+  background: #2a2d3e;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid #FF8700;
+`;
+
+const Svg = styled.svg`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 `;
 
 export default Node;
