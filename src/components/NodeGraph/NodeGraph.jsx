@@ -55,6 +55,15 @@ function NodeGraph({ initialState, groupId, rows }) {
     };
   }, []);
 
+  // Set initial scale after arrows have time to render
+  React.useLayoutEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setTransform({ x: 0, y: 0, scale: 0.5 });
+    }, 600); // Wait longer than arrow calculation (which uses 300ms max)
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
+
   // Handle wheel events for zooming
   React.useEffect(() => {
     const handleWheel = (e) => {
@@ -121,6 +130,8 @@ function NodeGraph({ initialState, groupId, rows }) {
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging, dragStart, transform.x, transform.y]);
+
+
 
   React.useEffect(() => {
     const dateEntries = Object.entries(initialState).filter(
@@ -264,10 +275,11 @@ function NodeGraph({ initialState, groupId, rows }) {
 
 const Viewport = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  position: ${window.self !== window.top ? 'relative' : 'fixed'};
+  top: ${window.self !== window.top ? 'auto' : '0'};
+  left: ${window.self !== window.top ? 'auto' : '0'};
+  width: ${window.self !== window.top ? '100%' : '100vw'};
+  height: ${window.self !== window.top ? '100%' : '100vh'};
   overflow: hidden;
   background: linear-gradient(135deg, #1e1e2e 0%, #232338 100%);
   
@@ -283,6 +295,9 @@ const TransformContainer = styled.div`
   transform-origin: center center;
   transition: transform 0.1s ease-out;
   will-change: transform;
+  justify-content: center;
+  align-items: center;
+  display: flex;
 `;
 
 const Wrapper = styled(Paper)`

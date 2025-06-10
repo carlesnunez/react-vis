@@ -24,7 +24,6 @@ function CounterNodeGraph() {
             label: 'Counter Children',
             parentId: 'counter',
             dependsOnState: ['count'],
-            isPure: true,
           },
         ]
       ]}
