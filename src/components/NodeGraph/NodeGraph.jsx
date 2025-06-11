@@ -13,6 +13,8 @@ function NodeGraph({ initialState, groupId, rows }) {
   const viewportRef = React.useRef();
   
   const [state, setState] = React.useState(initialState);
+  const [contextPropagation, setContextPropagation] = React.useState({});
+  const [parentPropagation, setParentPropagation] = React.useState({});
   const [transform, setTransform] = React.useState({
     x: 0,
     y: 0,
@@ -24,6 +26,66 @@ function NodeGraph({ initialState, groupId, rows }) {
   const zoomTimeoutRef = React.useRef();
 
   const stateByRow = useStateByRow(rows);
+
+  // Function to handle context propagation animation
+  const triggerContextPropagation = React.useCallback((contextName, newValue) => {
+    console.log(`🔥 Starting context propagation for ${contextName} with value:`, newValue);
+    
+    // First, update the actual state
+    setState(currentState => ({
+      ...currentState,
+      [contextName.toLowerCase().replace('context', '')]: newValue
+    }));
+
+    // Then trigger the visual propagation animation
+    const propagationId = `${contextName}-${Date.now()}`;
+    
+    // Find all components that use this context
+    const affectedComponents = [];
+    rows.forEach((row, rowIndex) => {
+      row.forEach(node => {
+        if (node.usesContext && node.usesContext.includes(contextName)) {
+          const componentId = node.id || node.label.toLowerCase();
+          affectedComponents.push({
+            id: componentId,
+            delay: rowIndex * 150 // Stagger based on row depth with shorter delays
+          });
+          console.log(`📝 Found affected component: ${componentId}, delay: ${rowIndex * 150}ms`);
+        }
+      });
+    });
+
+    console.log(`📋 Total affected components:`, affectedComponents);
+
+    // Start the propagation animation
+    setContextPropagation(prev => ({
+      ...prev,
+      [propagationId]: {
+        contextName,
+        affectedComponents,
+        startTime: Date.now()
+      }
+    }));
+
+    // Clean up after animation completes (shorter duration)
+    setTimeout(() => {
+      console.log(`🧹 Cleaning up propagation for ${contextName}`);
+      setContextPropagation(prev => {
+        const newProp = { ...prev };
+        delete newProp[propagationId];
+        return newProp;
+      });
+      
+      // After context propagation completes, trigger parent-child propagation
+      // This simulates React's behavior where context changes cause descendants to re-render
+      affectedComponents.forEach(comp => {
+        setTimeout(() => {
+          triggerParentPropagation(comp.id, 'context-cascade', [contextName]);
+        }, comp.delay + 200); // After the context propagation delay + some buffer
+      });
+      
+    }, affectedComponents.length * 150 + 800); // Much shorter total time
+  }, [rows]);
 
   // Function to show zoom controls and reset timeout
   const showControls = React.useCallback(() => {
@@ -131,8 +193,6 @@ function NodeGraph({ initialState, groupId, rows }) {
     };
   }, [isDragging, dragStart, transform.x, transform.y]);
 
-
-
   React.useEffect(() => {
     const dateEntries = Object.entries(initialState).filter(
       ([key, val]) => {
@@ -163,6 +223,64 @@ function NodeGraph({ initialState, groupId, rows }) {
     }
   }, [initialState]);
 
+  // Function to handle parent-child propagation when a parent re-renders
+  const triggerParentPropagation = React.useCallback((parentId, reason, excludeContextUsers = []) => {
+    console.log(`👨‍👧‍👦 Starting parent propagation from ${parentId} (reason: ${reason})`);
+    
+    const propagationId = `${parentId}-${Date.now()}`;
+    
+    // Find all direct children of this parent
+    const children = [];
+    rows.forEach((row, rowIndex) => {
+      row.forEach(node => {
+        const nodeParentId = node.parentId?.toLowerCase() || node.parentId;
+        if (nodeParentId === parentId.toLowerCase()) {
+          const childId = node.id || node.label.toLowerCase();
+          
+          // If this is a context cascade, skip children that already use the same context
+          if (reason === 'context-cascade' && excludeContextUsers.length > 0) {
+            const childUsesExcludedContext = excludeContextUsers.some(contextName => 
+              node.usesContext && node.usesContext.includes(contextName)
+            );
+            if (childUsesExcludedContext) {
+              console.log(`⏭️ Skipping ${childId} - already uses context`);
+              return;
+            }
+          }
+          
+          children.push({
+            id: childId,
+            delay: 50 // Small delay to show the propagation wave
+          });
+          console.log(`👶 Found child: ${childId}`);
+        }
+      });
+    });
+
+    if (children.length > 0) {
+      // Start the parent propagation animation
+      setParentPropagation(prev => ({
+        ...prev,
+        [propagationId]: {
+          parentId,
+          children,
+          startTime: Date.now(),
+          reason
+        }
+      }));
+
+      // Clean up after animation completes
+      setTimeout(() => {
+        console.log(`🧹 Cleaning up parent propagation from ${parentId}`);
+        setParentPropagation(prev => {
+          const newProp = { ...prev };
+          delete newProp[propagationId];
+          return newProp;
+        });
+      }, children.length * 50 + 600);
+    }
+  }, [rows]);
+
   return (
     <Viewport 
       ref={viewportRef} 
@@ -174,7 +292,14 @@ function NodeGraph({ initialState, groupId, rows }) {
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`
         }}
       >
-        <Provider groupId={groupId} wrapperRef={wrapperRef}>
+        <Provider 
+          groupId={groupId} 
+          wrapperRef={wrapperRef} 
+          onContextChange={triggerContextPropagation}
+          onParentPropagation={triggerParentPropagation}
+          contextPropagation={contextPropagation}
+          parentPropagation={parentPropagation}
+        >
           <Wrapper ref={wrapperRef}>
             {rows.map((nodes, rowIndex) => (
               <Row key={rowIndex}>
@@ -186,6 +311,44 @@ function NodeGraph({ initialState, groupId, rows }) {
                   // to nodes that are "low enough" so that they'll
                   // re-render when that state changes.
                   let relevantState = pick(state, stateByRow[rowIndex]);
+                  
+                  // Contexts need access to their specific state to show current values
+                  if (node.isContext && node.providesValue) {
+                    // Context only needs the specific state it provides
+                    relevantState = pick(state, [node.providesValue]);
+                  } else {
+                    // For regular components, be more specific about what state they receive
+                    let stateKeys = [];
+                    
+                    // If the component owns state, it needs that state
+                    if (node.ownsState) {
+                      stateKeys.push(node.ownsState);
+                    }
+                    
+                    // If the component has explicit state dependencies, include those
+                    if (node.dependsOnState) {
+                      stateKeys.push(...node.dependsOnState);
+                    }
+                    
+                    // If no specific dependencies and it's a regular component, 
+                    // fall back to the row-based logic (for backwards compatibility)
+                    if (stateKeys.length === 0 && !node.usesContext) {
+                      stateKeys = stateByRow[rowIndex];
+                    }
+                    
+                    // If it only uses context and has no other state dependencies,
+                    // give it minimal state (just what it explicitly needs)
+                    if (stateKeys.length === 0 && node.usesContext) {
+                      // Only pass context-related state if any
+                      stateKeys = stateByRow[rowIndex].filter(key => 
+                        node.usesContext.some(contextName => 
+                          key === contextName.toLowerCase().replace('context', '')
+                        )
+                      );
+                    }
+                    
+                    relevantState = pick(state, stateKeys);
+                  }
 
                   // TODO: I should have a `type` that can be
                   // `normal` | `pure` | `secret-pure`
@@ -195,6 +358,9 @@ function NodeGraph({ initialState, groupId, rows }) {
                       node.dependsOnState || []
                     );
                   }
+                  
+                  // Debug log to see what state each component receives
+                  console.log(`🎯 ${node.label} receives state:`, Object.keys(relevantState));
 
                   let alignment;
                   if (nodes.length === 1) {

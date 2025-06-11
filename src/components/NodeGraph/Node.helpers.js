@@ -136,3 +136,106 @@ export function useParentPath({
 
   return parentPath;
 }
+
+export function useContextPaths({
+  actualId,
+  usesContext,
+  nodeRef,
+  alignment,
+}) {
+  const [contextPaths, setContextPaths] = React.useState([]);
+  const { domNodes, wrapperRef } = React.useContext(Context);
+
+  React.useEffect(() => {
+    function runEffect() {
+      if (!usesContext || usesContext.length === 0) {
+        setContextPaths([]);
+        return;
+      }
+
+      const paths = [];
+
+      usesContext.forEach(contextName => {
+        const contextId = contextName.toLowerCase();
+        const contextNode = domNodes.current[contextId];
+        
+        if (!contextNode?.current || !wrapperRef?.current || !nodeRef?.current) {
+          return;
+        }
+
+        const wrapperBox = wrapperRef.current.getBoundingClientRect();
+
+        const contextBox = contextNode.current.getBoundingClientRect();
+        const relativeContextBox = {
+          top: contextBox.top - wrapperBox.top,
+          left: contextBox.left - wrapperBox.left,
+          right: contextBox.left - wrapperBox.left + contextBox.width,
+          bottom: contextBox.top - wrapperBox.top + contextBox.height,
+          width: contextBox.width,
+          height: contextBox.height,
+        };
+        relativeContextBox.centerX =
+          relativeContextBox.left + relativeContextBox.width / 2;
+        relativeContextBox.centerY =
+          relativeContextBox.top + relativeContextBox.height / 2;
+
+        const nodeBox = nodeRef.current.getBoundingClientRect();
+        const relativeNodeBox = {
+          top: nodeBox.top - wrapperBox.top,
+          left: nodeBox.left - wrapperBox.left,
+          right: nodeBox.left - wrapperBox.left + nodeBox.width,
+          bottom: nodeBox.top - wrapperBox.top + nodeBox.height,
+          width: nodeBox.width,
+          height: nodeBox.height,
+        };
+        relativeNodeBox.centerX =
+          relativeNodeBox.left + relativeNodeBox.width / 2;
+        relativeNodeBox.centerY =
+          relativeNodeBox.top + relativeNodeBox.height / 2;
+
+        const PATH_GAP = 8;
+
+        // Context connections are usually from top to multiple children
+        // We'll make them curved and dotted to differentiate from parent connections
+        const xStart = relativeContextBox.centerX;
+        const yStart = relativeContextBox.bottom + PATH_GAP;
+        const xEnd = relativeNodeBox.centerX;
+        const yEnd = relativeNodeBox.top - PATH_GAP;
+
+        // Add some curve for visual appeal
+        const midY = yStart + (yEnd - yStart) * 0.5;
+        const controlOffset = Math.abs(xEnd - xStart) * 0.3;
+
+        const path = `
+          M ${xStart} ${yStart}
+          Q ${xStart + controlOffset} ${midY}
+            ${xEnd} ${yEnd}
+        `;
+
+        paths.push({
+          path,
+          contextName,
+        });
+      });
+
+      setContextPaths(paths);
+    }
+
+    // Run after everything's already happened
+    const timeoutId = window.setTimeout(runEffect, 150);
+
+    // Also run on resize
+    window.addEventListener('resize', runEffect);
+
+    // Retry mechanism
+    const retryTimeoutId = window.setTimeout(runEffect, 400);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearTimeout(retryTimeoutId);
+      window.removeEventListener('resize', runEffect);
+    };
+  }, [actualId, usesContext]);
+
+  return contextPaths;
+}

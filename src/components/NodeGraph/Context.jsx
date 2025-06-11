@@ -2,7 +2,7 @@ import React from 'react';
 
 const Context = React.createContext({});
 
-export function Provider({ wrapperRef, groupId, children }) {
+export function Provider({ wrapperRef, groupId, onContextChange, onParentPropagation, contextPropagation, parentPropagation, children }) {
   const domNodes = React.useRef({});
 
   const value = React.useMemo(() => {
@@ -10,8 +10,12 @@ export function Provider({ wrapperRef, groupId, children }) {
       domNodes,
       groupId,
       wrapperRef,
+      onContextChange,
+      onParentPropagation,
+      contextPropagation,
+      parentPropagation,
     };
-  }, [groupId, wrapperRef]);
+  }, [groupId, wrapperRef, onContextChange, onParentPropagation, contextPropagation, parentPropagation]);
 
   return (
     <Context.Provider value={value}>{children}</Context.Provider>
