@@ -392,11 +392,21 @@ function NodeGraph({ initialState, groupId, rows }) {
                         }));
                       }}
                       onClick={() => {
-                        setState((currentState) => ({
-                          ...currentState,
-                          [node.ownsState]:
-                            currentState[node.ownsState] + 1,
-                        }));
+                        setState((currentState) => {
+                          if (!node.ownsState) return currentState;
+                          
+                          if (typeof currentState[node.ownsState] === 'boolean') {
+                            return {
+                              ...currentState,
+                              [node.ownsState]: !currentState[node.ownsState]
+                            };
+                          }
+                          
+                          return {
+                            ...currentState,
+                            [node.ownsState]: currentState[node.ownsState] + 1
+                          };
+                        });
                       }}
                     />
                   );

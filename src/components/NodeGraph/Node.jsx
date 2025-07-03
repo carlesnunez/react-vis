@@ -316,7 +316,15 @@ function StateDisplay({ ownsState, state, onClick, onChange }) {
           <StateParagraph>
             {ownsState}: {state[ownsState]}
           </StateParagraph>
-          <Button onClick={onClick}>Increment</Button>
+          <Button>Increment</Button>
+        </>
+      )}
+      {stateType === 'boolean' && (
+        <>
+          <StateParagraph>
+            {ownsState}: {state[ownsState] ? 'true' : 'false'}
+          </StateParagraph>
+          <Button>Toggle</Button>
         </>
       )}
       {stateType === 'string' && (
@@ -347,7 +355,7 @@ const Wrapper = styled.div`
   align-items: center;
   width: 100%;
   min-width: 180px;
-  max-width: min(100%, 220px);
+  max-width: min(100%, 340px);
   min-height: 100px;
   padding: 16px 20px;
   

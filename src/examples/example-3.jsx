@@ -5,19 +5,22 @@ function CounterNodeGraph() {
     <NodeGraph
       initialState={{
         count: 0,
+        theme: 'dark',
       }}
       rows={[
         [
           {
-            ownsState: 'count',
-            label: 'App',
-          },
+            label: 'ThemeContext',
+            isContext: true,
+            providesValue: 'theme',
+          }
         ],
         [
           {
-            label: `Counter`,
-            parentId: 'app',
-            props: ['count'],
+            label: 'Counter',
+            parentId: 'themecontext',
+            ownsState: 'count',
+            usesContext: ['ThemeContext'],
           },
         ],
         [

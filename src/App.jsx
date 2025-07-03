@@ -15,6 +15,12 @@ import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { categories, examples } from './examples';
 import Example1 from './examples/example-1.jsx';
 import Example2 from './examples/example-2.jsx';
+import Example3 from './examples/example-3.jsx';
+import ExampleMovingStateDownFixed from './examples/example-moving-state-down-fixed.jsx';
+import ExampleMovingStateDown from './examples/example-moving-state-down.jsx';
+import ReactTimelineOrionPage from './examples/react-timeline-orion.jsx';
+import ReactTimelinePage from './examples/react-timeline.jsx';
+
 
 // Componente para mostrar un ejemplo específico
 function ExampleViewer({ exampleKey }) {
@@ -201,8 +207,14 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/react-timeline" element={<ReactTimelinePage />} />
+      <Route path="/react-timeline-orion" element={<ReactTimelineOrionPage />} />
       <Route path="/example-2" element={<Example2 />} />
       <Route path="/example-1" element={<Example1 />} />
+      <Route path="/example-3" element={<Example3 />} />
+      <Route path="/example-moving-state-down" element={<ExampleMovingStateDown />} />
+      <Route path="/example-moving-state-down-fixed" element={<ExampleMovingStateDownFixed />} />
+
       {/* <Route path="/:exampleKey" element={<ExampleRoute />} /> */}
     </Routes>
   );
